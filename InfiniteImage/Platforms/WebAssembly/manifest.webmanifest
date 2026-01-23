@@ -1,0 +1,10 @@
+{
+  "background_color": "#ffffff",
+  "description": "InfiniteImage",
+  "display": "standalone",
+  "name": "InfiniteImage",
+  "short_name": "InfiniteImage",
+  "start_url": "/index.html",
+  "theme_color": "#ffffff",
+  "scope": "/"
+}
