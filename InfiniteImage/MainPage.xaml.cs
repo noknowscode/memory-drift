@@ -156,30 +156,48 @@ public sealed partial class MainPage : Page
 
     private void OnPointerPressed(object sender, PointerRoutedEventArgs e)
     {
-        _isPointerPressed = true;
-        _lastPointerPosition = e.GetCurrentPoint(Canvas3D).Position;
-        Canvas3D.CapturePointer(e.Pointer);
-        e.Handled = true;
+        var pointerPoint = e.GetCurrentPoint(Canvas3D);
+
+        // Only handle mouse input here; touch will use ManipulationDelta
+        if (pointerPoint.PointerDevice.PointerDeviceType.Equals(PointerDeviceType.Mouse))
+        {
+            _isPointerPressed = true;
+            _lastPointerPosition = pointerPoint.Position;
+            Canvas3D.CapturePointer(e.Pointer);
+            e.Handled = true;
+        }
     }
 
     private void OnPointerMoved(object sender, PointerRoutedEventArgs e)
     {
         if (!_isPointerPressed) return;
 
-        var currentPosition = e.GetCurrentPoint(Canvas3D).Position;
-        var deltaX = currentPosition.X - _lastPointerPosition.X;
-        var deltaY = currentPosition.Y - _lastPointerPosition.Y;
+        var pointerPoint = e.GetCurrentPoint(Canvas3D);
 
-        _viewModel.OnPan(deltaX, deltaY);
-        _lastPointerPosition = currentPosition;
-        e.Handled = true;
+        // Only handle mouse input
+        if (pointerPoint.PointerDevice.PointerDeviceType.Equals(PointerDeviceType.Mouse))
+        {
+            var currentPosition = pointerPoint.Position;
+            var deltaX = currentPosition.X - _lastPointerPosition.X;
+            var deltaY = currentPosition.Y - _lastPointerPosition.Y;
+
+            _viewModel.OnPan(deltaX, deltaY);
+            _lastPointerPosition = currentPosition;
+            e.Handled = true;
+        }
     }
 
     private void OnPointerReleased(object sender, PointerRoutedEventArgs e)
     {
-        _isPointerPressed = false;
-        Canvas3D.ReleasePointerCapture(e.Pointer);
-        e.Handled = true;
+        var pointerPoint = e.GetCurrentPoint(Canvas3D);
+
+        // Only handle mouse input
+        if (pointerPoint.PointerDevice.PointerDeviceType.Equals(PointerDeviceType.Mouse))
+        {
+            _isPointerPressed = false;
+            Canvas3D.ReleasePointerCapture(e.Pointer);
+            e.Handled = true;
+        }
     }
 
     private void OnPointerWheelChanged(object sender, PointerRoutedEventArgs e)
@@ -194,11 +212,17 @@ public sealed partial class MainPage : Page
 
     private void OnManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
     {
-        // Handle touch gestures
-        var translation = e.Delta.Translation;
-        _viewModel.OnPan(translation.X, translation.Y);
+        // Handle touch gestures (Android, iOS, touch-enabled devices)
 
-        // Pinch gesture
+        // Single-finger drag: pan camera (XY movement)
+        var translation = e.Delta.Translation;
+        if (Math.Abs(translation.X) > 0.1 || Math.Abs(translation.Y) > 0.1)
+        {
+            // Adjust sensitivity for touch (touch movements tend to be larger than mouse)
+            _viewModel.OnPan(translation.X * 0.5, translation.Y * 0.5);
+        }
+
+        // Pinch gesture: zoom in/out (Z-axis movement)
         if (Math.Abs(e.Delta.Scale - 1.0) > 0.001)
         {
             _viewModel.OnPinch(e.Delta.Scale);

@@ -181,6 +181,7 @@
                         <RowDefinition />
                         <RowDefinition />
                         <RowDefinition />
+                        <RowDefinition />
                     </Grid.RowDefinitions>
 
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="W A S D"
@@ -203,9 +204,14 @@
                     <TextBlock Grid.Row="3" Grid.Column="1" Text="Look around"
                                Style="{StaticResource LabelSmall}" Foreground="#80FFFFFF" Margin="8,0,0,0" />
 
-                    <TextBlock Grid.Row="4" Grid.Column="0" Text="R"
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Pinch"
                                Style="{StaticResource LabelSmall}" Foreground="{ThemeResource PrimaryBrush}" FontFamily="Consolas" />
-                    <TextBlock Grid.Row="4" Grid.Column="1" Text="Reset"
+                    <TextBlock Grid.Row="4" Grid.Column="1" Text="Zoom in/out"
+                               Style="{StaticResource LabelSmall}" Foreground="#80FFFFFF" Margin="8,0,0,0" />
+
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="R"
+                               Style="{StaticResource LabelSmall}" Foreground="{ThemeResource PrimaryBrush}" FontFamily="Consolas" />
+                    <TextBlock Grid.Row="5" Grid.Column="1" Text="Reset"
                                Style="{StaticResource LabelSmall}" Foreground="#80FFFFFF" Margin="8,0,0,0" />
                 </Grid>
             </StackPanel>
