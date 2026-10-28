@@ -1,8 +1,5 @@
 namespace InfiniteImage.Models;
 
-/// <summary>
-/// Represents a 3D chunk containing image planes.
-/// </summary>
 public class Chunk
 {
     public int CX { get; }

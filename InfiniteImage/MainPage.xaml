@@ -9,13 +9,35 @@
 
     <Page.Background>
         <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
-            <GradientStop Color="#0A0A12" Offset="0" />
-            <GradientStop Color="#050507" Offset="1" />
+            <GradientStop Color="{StaticResource SurfaceDarkColor}" Offset="0" />
+            <GradientStop Color="{StaticResource BackgroundColor}" Offset="1" />
         </LinearGradientBrush>
     </Page.Background>
 
     <Grid x:Name="RootGrid">
-        <!-- 3D Canvas Area -->
+        <Viewbox HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 MaxWidth="480"
+                 MaxHeight="240"
+                 IsHitTestVisible="False"
+                 Opacity="{x:Bind _viewModel.BackgroundYearOpacity, Mode=OneWay}">
+            <TextBlock Text="{x:Bind _viewModel.BackgroundYear, Mode=OneWay}"
+                       FontSize="101"
+                       FontWeight="Black"
+                       Foreground="{StaticResource WhiteBrush25}"
+                       TextAlignment="Center"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center">
+                <TextBlock.RenderTransform>
+                    <CompositeTransform ScaleX="{x:Bind _viewModel.YearScale, Mode=OneWay}"
+                                        ScaleY="{x:Bind _viewModel.YearScale, Mode=OneWay}"
+                                        Rotation="{x:Bind _viewModel.YearRotation, Mode=OneWay}"
+                                        TranslateX="{x:Bind _viewModel.YearOffsetX, Mode=OneWay}"
+                                        TranslateY="{x:Bind _viewModel.YearOffsetY, Mode=OneWay}" />
+                </TextBlock.RenderTransform>
+            </TextBlock>
+        </Viewbox>
+
         <Canvas x:Name="Canvas3D"
                 PointerPressed="OnPointerPressed"
                 PointerMoved="OnPointerMoved"
@@ -24,68 +46,54 @@
                 ManipulationMode="All"
                 ManipulationDelta="OnManipulationDelta" />
 
-        <!-- Vignette Overlay -->
         <Border x:Name="VignetteOverlay"
                 IsHitTestVisible="False">
             <Border.Background>
                 <RadialGradientBrush Center="0.5,0.5"
                                      RadiusX="0.8"
                                      RadiusY="0.8">
-                    <GradientStop Color="#00000000" Offset="0.3" />
-                    <GradientStop Color="#60000000" Offset="0.8" />
-                    <GradientStop Color="#B0000000" Offset="1.0" />
+                    <GradientStop Color="{StaticResource BlackColor0}" Offset="0.3" />
+                    <GradientStop Color="{StaticResource BlackColor38}" Offset="0.8" />
+                    <GradientStop Color="{StaticResource BlackColor69}" Offset="1.0" />
                 </RadialGradientBrush>
             </Border.Background>
         </Border>
 
-        <!-- Center Reticle -->
         <Grid HorizontalAlignment="Center"
               VerticalAlignment="Center"
               IsHitTestVisible="False"
               Opacity="0.5">
-            <!-- Crosshair lines -->
-            <Border Width="20" Height="2" Background="#60FFFFFF" CornerRadius="1" />
-            <Border Width="2" Height="20" Background="#60FFFFFF" CornerRadius="1" />
-            <!-- Center dot -->
+            <Border Width="20" Height="2" Background="{StaticResource WhiteBrush38}" CornerRadius="1" />
+            <Border Width="2" Height="20" Background="{StaticResource WhiteBrush38}" CornerRadius="1" />
             <Ellipse Width="4" Height="4" Fill="{ThemeResource PrimaryBrush}" />
         </Grid>
 
-        <!-- Top-Left: Title with glow -->
-        <Border Margin="20"
-                HorizontalAlignment="Left"
+        <Button Margin="0,20,0,0"
+                HorizontalAlignment="Center"
                 VerticalAlignment="Top"
-                Background="#80000000"
+                Click="OnUploadFolderClick"
+                Background="{StaticResource BlackBrush50}"
                 CornerRadius="12"
-                Padding="16,12"
-                Translation="0,0,16"
-                IsHitTestVisible="False">
-            <Border.Shadow>
+                Padding="16,10"
+                Translation="0,0,16">
+            <Button.Shadow>
                 <ThemeShadow />
-            </Border.Shadow>
-            <StackPanel>
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="&#x221E;"
-                               FontSize="22"
-                               Foreground="{ThemeResource PrimaryBrush}"
-                               VerticalAlignment="Center" />
-                    <TextBlock Text="Memory Drift"
-                               Style="{StaticResource TitleMedium}"
-                               Foreground="White"
-                               FontWeight="SemiBold"
-                               VerticalAlignment="Center" />
-                </StackPanel>
-                <TextBlock Text="Glide through your memories."
-                           Style="{StaticResource BodySmall}"
-                           Foreground="#80FFFFFF"
-                           Margin="0,4,0,0" />
+            </Button.Shadow>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="&#x1F4C1;"
+                           FontSize="18"
+                           VerticalAlignment="Center" />
+                <TextBlock Text="Upload Photos"
+                           Style="{StaticResource BodyMedium}"
+                           Foreground="White"
+                           VerticalAlignment="Center" />
             </StackPanel>
-        </Border>
+        </Button>
 
-        <!-- Top-Right: Coordinates Panel -->
         <Border Margin="20"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Top"
-                Background="#80000000"
+                Background="{StaticResource BlackBrush50}"
                 CornerRadius="12"
                 Padding="14,10"
                 Translation="0,0,16"
@@ -109,7 +117,7 @@
                 <TextBlock Grid.Row="0" Grid.Column="0"
                            Text="X"
                            Style="{StaticResource LabelSmall}"
-                           Foreground="#60FFFFFF"
+                           Foreground="{StaticResource WhiteBrush38}"
                            FontWeight="Medium" />
                 <TextBlock Grid.Row="0" Grid.Column="1"
                            Text="{x:Bind _viewModel.CoordX, Mode=OneWay}"
@@ -121,7 +129,7 @@
                 <TextBlock Grid.Row="1" Grid.Column="0"
                            Text="Y"
                            Style="{StaticResource LabelSmall}"
-                           Foreground="#60FFFFFF"
+                           Foreground="{StaticResource WhiteBrush38}"
                            FontWeight="Medium" />
                 <TextBlock Grid.Row="1" Grid.Column="1"
                            Text="{x:Bind _viewModel.CoordY, Mode=OneWay}"
@@ -132,14 +140,30 @@
 
                 <TextBlock Grid.Row="2" Grid.Column="0"
                            Text="Z"
+                           Visibility="{x:Bind _viewModel.IsRandomMode, Mode=OneWay}"
                            Style="{StaticResource LabelSmall}"
                            Foreground="{ThemeResource TertiaryBrush}"
                            FontWeight="Bold" />
                 <TextBlock Grid.Row="2" Grid.Column="1"
                            Text="{x:Bind _viewModel.CoordZ, Mode=OneWay}"
+                           Visibility="{x:Bind _viewModel.IsRandomMode, Mode=OneWay}"
                            Style="{StaticResource LabelSmall}"
                            Foreground="{ThemeResource TertiaryBrush}"
                            FontFamily="Consolas"
+                           FontWeight="Bold"
+                           HorizontalAlignment="Right" />
+
+                <TextBlock Grid.Row="2" Grid.Column="0"
+                           Text="Date"
+                           Visibility="{x:Bind _viewModel.IsLibraryMode, Mode=OneWay}"
+                           Style="{StaticResource LabelSmall}"
+                           Foreground="{ThemeResource TertiaryBrush}"
+                           FontWeight="Bold" />
+                <TextBlock Grid.Row="2" Grid.Column="1"
+                           Text="{x:Bind _viewModel.CurrentDateText, Mode=OneWay}"
+                           Visibility="{x:Bind _viewModel.IsLibraryMode, Mode=OneWay}"
+                           Style="{StaticResource LabelSmall}"
+                           Foreground="{ThemeResource TertiaryBrush}"
                            FontWeight="Bold"
                            HorizontalAlignment="Right" />
 
@@ -152,11 +176,10 @@
             </Grid>
         </Border>
 
-        <!-- Bottom-Left: Navigation Help -->
         <Border Margin="20"
                 HorizontalAlignment="Left"
                 VerticalAlignment="Bottom"
-                Background="#80000000"
+                Background="{StaticResource BlackBrush50}"
                 CornerRadius="12"
                 Padding="14,12"
                 Translation="0,0,16"
@@ -187,41 +210,40 @@
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="W A S D"
                                Style="{StaticResource LabelSmall}" Foreground="White" FontFamily="Consolas" />
                     <TextBlock Grid.Row="0" Grid.Column="1" Text="Pan"
-                               Style="{StaticResource LabelSmall}" Foreground="#80FFFFFF" Margin="8,0,0,0" />
+                               Style="{StaticResource LabelSmall}" Foreground="{StaticResource WhiteBrush50}" Margin="8,0,0,0" />
 
                     <TextBlock Grid.Row="1" Grid.Column="0" Text="E / Q"
                                Style="{StaticResource LabelSmall}" Foreground="{ThemeResource TertiaryBrush}" FontFamily="Consolas" />
                     <TextBlock Grid.Row="1" Grid.Column="1" Text="Fly depth"
-                               Style="{StaticResource LabelSmall}" Foreground="#80FFFFFF" Margin="8,0,0,0" />
+                               Style="{StaticResource LabelSmall}" Foreground="{StaticResource WhiteBrush50}" Margin="8,0,0,0" />
 
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="Scroll"
                                Style="{StaticResource LabelSmall}" Foreground="White" FontFamily="Consolas" />
                     <TextBlock Grid.Row="2" Grid.Column="1" Text="Fly through"
-                               Style="{StaticResource LabelSmall}" Foreground="#80FFFFFF" Margin="8,0,0,0" />
+                               Style="{StaticResource LabelSmall}" Foreground="{StaticResource WhiteBrush50}" Margin="8,0,0,0" />
 
                     <TextBlock Grid.Row="3" Grid.Column="0" Text="Drag"
                                Style="{StaticResource LabelSmall}" Foreground="White" FontFamily="Consolas" />
                     <TextBlock Grid.Row="3" Grid.Column="1" Text="Look around"
-                               Style="{StaticResource LabelSmall}" Foreground="#80FFFFFF" Margin="8,0,0,0" />
+                               Style="{StaticResource LabelSmall}" Foreground="{StaticResource WhiteBrush50}" Margin="8,0,0,0" />
 
                     <TextBlock Grid.Row="4" Grid.Column="0" Text="Pinch"
                                Style="{StaticResource LabelSmall}" Foreground="{ThemeResource PrimaryBrush}" FontFamily="Consolas" />
                     <TextBlock Grid.Row="4" Grid.Column="1" Text="Zoom in/out"
-                               Style="{StaticResource LabelSmall}" Foreground="#80FFFFFF" Margin="8,0,0,0" />
+                               Style="{StaticResource LabelSmall}" Foreground="{StaticResource WhiteBrush50}" Margin="8,0,0,0" />
 
                     <TextBlock Grid.Row="5" Grid.Column="0" Text="R"
                                Style="{StaticResource LabelSmall}" Foreground="{ThemeResource PrimaryBrush}" FontFamily="Consolas" />
                     <TextBlock Grid.Row="5" Grid.Column="1" Text="Reset"
-                               Style="{StaticResource LabelSmall}" Foreground="#80FFFFFF" Margin="8,0,0,0" />
+                               Style="{StaticResource LabelSmall}" Foreground="{StaticResource WhiteBrush50}" Margin="8,0,0,0" />
                 </Grid>
             </StackPanel>
         </Border>
 
-        <!-- Bottom-Right: Stats -->
         <Border Margin="20"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
-                Background="#80000000"
+                Background="{StaticResource BlackBrush50}"
                 CornerRadius="12"
                 Padding="14,12"
                 Translation="0,0,16"
@@ -247,7 +269,7 @@
                     </Grid.RowDefinitions>
 
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Chunks"
-                               Style="{StaticResource LabelSmall}" Foreground="#60FFFFFF" />
+                               Style="{StaticResource LabelSmall}" Foreground="{StaticResource WhiteBrush38}" />
                     <TextBlock Grid.Row="0" Grid.Column="1"
                                Text="{x:Bind _viewModel.ChunkCountText, Mode=OneWay}"
                                Style="{StaticResource LabelSmall}"
@@ -256,7 +278,7 @@
                                HorizontalAlignment="Right" />
 
                     <TextBlock Grid.Row="1" Grid.Column="0" Text="Planes"
-                               Style="{StaticResource LabelSmall}" Foreground="#60FFFFFF" />
+                               Style="{StaticResource LabelSmall}" Foreground="{StaticResource WhiteBrush38}" />
                     <TextBlock Grid.Row="1" Grid.Column="1"
                                Text="{x:Bind _viewModel.PlaneCountText, Mode=OneWay}"
                                Style="{StaticResource LabelSmall}"
@@ -277,17 +299,21 @@
             </StackPanel>
         </Border>
 
-        <!-- Bottom-Center: Speed Bar -->
         <StackPanel Margin="0,0,0,24"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Bottom"
-                    IsHitTestVisible="False"
-                    Spacing="8">
-            <Grid Width="240" Height="6">
-                <!-- Background track -->
+                    Spacing="12">
+
+            <controls:TimelineScrubberControl x:Name="TimelineScrubber"
+                                               Visibility="{x:Bind _viewModel.IsLibraryMode, Mode=OneWay}"
+                                               CurrentZ="{x:Bind _viewModel.CurrentTimelineZ, Mode=TwoWay}"
+                                               MaxZ="{x:Bind _viewModel.TimelineMaxZ, Mode=OneWay}"
+                                               EarliestDate="{x:Bind _viewModel.EarliestDate, Mode=OneWay}"
+                                               LatestDate="{x:Bind _viewModel.LatestDate, Mode=OneWay}" />
+
+            <Grid Width="240" Height="6" IsHitTestVisible="False">
                 <Border CornerRadius="3"
-                        Background="#20FFFFFF" />
-                <!-- Active bar with glow -->
+                        Background="{StaticResource WhiteBrush12}" />
                 <Border CornerRadius="3"
                         HorizontalAlignment="Left"
                         Width="{x:Bind _viewModel.SpeedBarWidth, Mode=OneWay}"
@@ -297,8 +323,8 @@
                     </Border.Shadow>
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                            <GradientStop Color="#7C5CFF" Offset="0" />
-                            <GradientStop Color="#4ADE80" Offset="1" />
+                            <GradientStop Color="{StaticResource PrimaryColor}" Offset="0" />
+                            <GradientStop Color="{StaticResource TertiaryColor}" Offset="1" />
                         </LinearGradientBrush>
                     </Border.Background>
                 </Border>
@@ -306,21 +332,20 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6">
                 <TextBlock Text="&#x2191;"
                            FontSize="10"
-                           Foreground="#60FFFFFF" />
+                           Foreground="{StaticResource WhiteBrush38}" />
                 <TextBlock Text="VELOCITY"
                            Style="{StaticResource LabelSmall}"
-                           Foreground="#60FFFFFF"
+                           Foreground="{StaticResource WhiteBrush38}"
                            FontWeight="Medium" />
             </StackPanel>
         </StackPanel>
 
-        <!-- Motion Blur Glow (scales with Z velocity) -->
         <Border IsHitTestVisible="False"
                 Opacity="{x:Bind _viewModel.MotionGlowOpacity, Mode=OneWay}">
             <Border.Background>
                 <RadialGradientBrush Center="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
-                    <GradientStop Color="#307C5CFF" Offset="0" />
-                    <GradientStop Color="#00000000" Offset="1" />
+                    <GradientStop Color="{StaticResource PrimaryColor19}" Offset="0" />
+                    <GradientStop Color="{StaticResource BlackColor0}" Offset="1" />
                 </RadialGradientBrush>
             </Border.Background>
         </Border>

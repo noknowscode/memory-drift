@@ -3,14 +3,12 @@ using InfiniteImage.Models;
 
 namespace InfiniteImage.Services;
 
-/// <summary>
-/// Tracks performance metrics for the application.
-/// </summary>
 public class PerformanceTelemetry
 {
+    private const int MaxFrameTimeSamples = 120;
+
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
     private readonly Queue<double> _frameTimesMs = new();
-    private const int MaxFrameTimeSamples = 120; // 2 seconds at 60 FPS
 
     private int _frameCount;
     private long _lastTelemetryUpdate;
@@ -22,28 +20,20 @@ public class PerformanceTelemetry
     public double MaxFrameTimeMs { get; private set; }
     public long TotalFrames { get; private set; }
 
-    // Image cache statistics
     public int ImageCacheHits { get; set; }
     public int ImageCacheMisses { get; set; }
     public long ImageCacheMemoryBytes { get; set; }
     public int CachedImages { get; set; }
 
-    // Projection statistics
     public int VisiblePlanes { get; set; }
     public int CulledPlanes { get; set; }
     public bool UsedCachedProjection { get; set; }
 
-    /// <summary>
-    /// Begins tracking a new frame.
-    /// </summary>
     public void BeginFrame()
     {
         _lastFrameTime = _stopwatch.Elapsed.TotalMilliseconds;
     }
 
-    /// <summary>
-    /// Ends tracking a frame and updates statistics.
-    /// </summary>
     public void EndFrame()
     {
         var currentTime = _stopwatch.Elapsed.TotalMilliseconds;
@@ -56,11 +46,9 @@ public class PerformanceTelemetry
         _frameCount++;
         TotalFrames++;
 
-        // Update min/max
         if (frameTime < MinFrameTimeMs) MinFrameTimeMs = frameTime;
         if (frameTime > MaxFrameTimeMs) MaxFrameTimeMs = frameTime;
 
-        // Update FPS every second
         if (currentTime - _lastTelemetryUpdate >= CanvasConfig.TelemetryUpdateIntervalMs)
         {
             Fps = _frameCount;
@@ -71,9 +59,6 @@ public class PerformanceTelemetry
         }
     }
 
-    /// <summary>
-    /// Gets a formatted performance report.
-    /// </summary>
     public string GetReport()
     {
         var cacheHitRate = ImageCacheHits + ImageCacheMisses > 0
@@ -93,9 +78,6 @@ public class PerformanceTelemetry
             """;
     }
 
-    /// <summary>
-    /// Resets telemetry counters.
-    /// </summary>
     public void Reset()
     {
         _frameTimesMs.Clear();

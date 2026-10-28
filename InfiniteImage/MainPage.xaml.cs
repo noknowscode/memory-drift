@@ -1,12 +1,9 @@
 using InfiniteImage.Controls;
 using InfiniteImage.Models;
-using InfiniteImage.Services;
 using InfiniteImage.ViewModels;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
 using Windows.Foundation;
-using System.Diagnostics;
 
 namespace InfiniteImage;
 
@@ -26,32 +23,37 @@ public sealed partial class MainPage : Page
     {
         this.InitializeComponent();
 
-        // Create services
-        var telemetry = new PerformanceTelemetry();
-        var imageCacheService = new ImageCacheService();
-        var chunkService = new ChunkService();
-        var projectionService = new ProjectionService();
+        _viewModel = App.Services?.GetRequiredService<CanvasViewModel>()
+            ?? throw new InvalidOperationException("Host not initialized");
 
-        _viewModel = new CanvasViewModel(chunkService, projectionService, telemetry, imageCacheService);
-
-        // Set DataContext for x:Bind
         this.DataContext = _viewModel;
 
-        // Set up render loop
         this.Loaded += OnLoaded;
         this.Unloaded += OnUnloaded;
         this.SizeChanged += OnSizeChanged;
+        this.LostFocus += OnLostFocus;
 
-        // Focus for keyboard input
         this.IsTabStop = true;
+    }
+
+    protected override async void OnNavigatedTo(NavigationEventArgs e)
+    {
+        base.OnNavigatedTo(e);
+
+        if (e.Parameter is string mode && mode == "library")
+        {
+            await _viewModel.LoadPhotoLibraryAsync(App.CurrentWindow);
+        }
+        else
+        {
+            await _viewModel.LoadSavedLibraryAsync();
+        }
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        // Update viewport
         _viewModel.SetViewport(RootGrid.ActualWidth, RootGrid.ActualHeight);
 
-        // Start render loop with frame rate limiter
         _renderTimer = new DispatcherTimer
         {
             Interval = TimeSpan.FromMilliseconds(CanvasConfig.TargetFrameTimeMs)
@@ -59,17 +61,22 @@ public sealed partial class MainPage : Page
         _renderTimer.Tick += OnRenderTick;
         _renderTimer.Start();
 
-        // Ensure keyboard focus
         this.Focus(FocusState.Programmatic);
-
-        // Keep focus on page
-        this.LostFocus += (s, args) => this.Focus(FocusState.Programmatic);
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
-        _renderTimer?.Stop();
-        _renderTimer = null;
+        if (_renderTimer is not null)
+        {
+            _renderTimer.Tick -= OnRenderTick;
+            _renderTimer.Stop();
+            _renderTimer = null;
+        }
+
+        this.Loaded -= OnLoaded;
+        this.Unloaded -= OnUnloaded;
+        this.SizeChanged -= OnSizeChanged;
+        this.LostFocus -= OnLostFocus;
     }
 
     private void OnSizeChanged(object sender, SizeChangedEventArgs e)
@@ -77,21 +84,21 @@ public sealed partial class MainPage : Page
         _viewModel.SetViewport(e.NewSize.Width, e.NewSize.Height);
     }
 
+    private void OnLostFocus(object sender, RoutedEventArgs e)
+    {
+        this.Focus(FocusState.Programmatic);
+    }
+
     private void OnRenderTick(object? sender, object e)
     {
-        // Update simulation
         _viewModel.Update();
-
-        // Update visuals
         UpdatePlaneControls();
     }
 
     private void UpdatePlaneControls()
     {
         var visiblePlanes = _viewModel.VisiblePlanes;
-        var cameraMoving = _viewModel.Camera.IsActivelyMoving;
 
-        // Reuse HashSet to avoid allocation
         _visibleIdsCache.Clear();
 
         foreach (var plane in visiblePlanes)
@@ -100,17 +107,14 @@ public sealed partial class MainPage : Page
 
             if (!_planeControls.TryGetValue(plane.Source.Id, out var control))
             {
-                // Get from pool or create new
                 control = GetOrCreateControl();
                 _planeControls[plane.Source.Id] = control;
                 Canvas3D.Children.Add(control);
             }
 
-            // Always load images (no longer skip during movement)
-            control.SetPlane(plane, _viewModel.ImageCache, false);
+            control.SetPlane(plane, _viewModel.ImageCache);
         }
 
-        // Return unused controls to pool - avoid LINQ
         _toRemoveCache.Clear();
         foreach (var kvp in _planeControls)
         {
@@ -129,43 +133,30 @@ public sealed partial class MainPage : Page
         }
     }
 
-    private ImagePlaneControl GetOrCreateControl()
-    {
-        if (_controlPool.Count > 0)
-        {
-            return _controlPool.Dequeue();
-        }
-        return new ImagePlaneControl();
-    }
-
-    #region Input Handling
+    private ImagePlaneControl GetOrCreateControl() =>
+        _controlPool.Count > 0 ? _controlPool.Dequeue() : new ImagePlaneControl();
 
     private void OnKeyDown(object sender, KeyRoutedEventArgs e)
     {
-        var key = e.Key.ToString();
-        _viewModel.OnKeyDown(key);
+        _viewModel.OnKeyDown(e.Key);
         e.Handled = true;
     }
 
     private void OnKeyUp(object sender, KeyRoutedEventArgs e)
     {
-        var key = e.Key.ToString();
-        _viewModel.OnKeyUp(key);
+        _viewModel.OnKeyUp(e.Key);
         e.Handled = true;
     }
 
     private void OnPointerPressed(object sender, PointerRoutedEventArgs e)
     {
         var pointerPoint = e.GetCurrentPoint(Canvas3D);
+        if (!pointerPoint.PointerDevice.PointerDeviceType.Equals(PointerDeviceType.Mouse)) return;
 
-        // Only handle mouse input here; touch will use ManipulationDelta
-        if (pointerPoint.PointerDevice.PointerDeviceType.Equals(PointerDeviceType.Mouse))
-        {
-            _isPointerPressed = true;
-            _lastPointerPosition = pointerPoint.Position;
-            Canvas3D.CapturePointer(e.Pointer);
-            e.Handled = true;
-        }
+        _isPointerPressed = true;
+        _lastPointerPosition = pointerPoint.Position;
+        Canvas3D.CapturePointer(e.Pointer);
+        e.Handled = true;
     }
 
     private void OnPointerMoved(object sender, PointerRoutedEventArgs e)
@@ -173,31 +164,25 @@ public sealed partial class MainPage : Page
         if (!_isPointerPressed) return;
 
         var pointerPoint = e.GetCurrentPoint(Canvas3D);
+        if (!pointerPoint.PointerDevice.PointerDeviceType.Equals(PointerDeviceType.Mouse)) return;
 
-        // Only handle mouse input
-        if (pointerPoint.PointerDevice.PointerDeviceType.Equals(PointerDeviceType.Mouse))
-        {
-            var currentPosition = pointerPoint.Position;
-            var deltaX = currentPosition.X - _lastPointerPosition.X;
-            var deltaY = currentPosition.Y - _lastPointerPosition.Y;
+        var currentPosition = pointerPoint.Position;
+        var deltaX = currentPosition.X - _lastPointerPosition.X;
+        var deltaY = currentPosition.Y - _lastPointerPosition.Y;
 
-            _viewModel.OnPan(deltaX, deltaY);
-            _lastPointerPosition = currentPosition;
-            e.Handled = true;
-        }
+        _viewModel.OnPan(deltaX, deltaY);
+        _lastPointerPosition = currentPosition;
+        e.Handled = true;
     }
 
     private void OnPointerReleased(object sender, PointerRoutedEventArgs e)
     {
         var pointerPoint = e.GetCurrentPoint(Canvas3D);
+        if (!pointerPoint.PointerDevice.PointerDeviceType.Equals(PointerDeviceType.Mouse)) return;
 
-        // Only handle mouse input
-        if (pointerPoint.PointerDevice.PointerDeviceType.Equals(PointerDeviceType.Mouse))
-        {
-            _isPointerPressed = false;
-            Canvas3D.ReleasePointerCapture(e.Pointer);
-            e.Handled = true;
-        }
+        _isPointerPressed = false;
+        Canvas3D.ReleasePointerCapture(e.Pointer);
+        e.Handled = true;
     }
 
     private void OnPointerWheelChanged(object sender, PointerRoutedEventArgs e)
@@ -205,24 +190,18 @@ public sealed partial class MainPage : Page
         var point = e.GetCurrentPoint(Canvas3D);
         var delta = point.Properties.MouseWheelDelta;
 
-        // Scroll down = fly forward (positive Z)
         _viewModel.OnScroll(-delta / 120.0 * 10);
         e.Handled = true;
     }
 
     private void OnManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
     {
-        // Handle touch gestures (Android, iOS, touch-enabled devices)
-
-        // Single-finger drag: pan camera (XY movement)
         var translation = e.Delta.Translation;
         if (Math.Abs(translation.X) > 0.1 || Math.Abs(translation.Y) > 0.1)
         {
-            // Adjust sensitivity for touch (touch movements tend to be larger than mouse)
             _viewModel.OnPan(translation.X * 0.5, translation.Y * 0.5);
         }
 
-        // Pinch gesture: zoom in/out (Z-axis movement)
         if (Math.Abs(e.Delta.Scale - 1.0) > 0.001)
         {
             _viewModel.OnPinch(e.Delta.Scale);
@@ -231,5 +210,8 @@ public sealed partial class MainPage : Page
         e.Handled = true;
     }
 
-    #endregion
+    private async void OnUploadFolderClick(object sender, RoutedEventArgs e)
+    {
+        await _viewModel.LoadPhotoLibraryAsync(App.CurrentWindow);
+    }
 }

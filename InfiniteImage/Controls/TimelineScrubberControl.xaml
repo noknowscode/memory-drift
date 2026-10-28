@@ -1,0 +1,69 @@
+<UserControl x:Class="InfiniteImage.Controls.TimelineScrubberControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Width="240">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="6" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="{x:Bind CurrentDateText, Mode=OneWay}"
+                   Style="{StaticResource LabelSmall}"
+                   Foreground="{StaticResource WhiteBrush63}"
+                   FontWeight="Medium"
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,4" />
+
+        <Grid Grid.Row="1" Height="6">
+            <Border CornerRadius="3"
+                    Background="{StaticResource WhiteBrush12}" />
+
+            <Border CornerRadius="3"
+                    HorizontalAlignment="Left"
+                    Width="{x:Bind ProgressWidth, Mode=OneWay}"
+                    Translation="0,0,8">
+                <Border.Shadow>
+                    <ThemeShadow />
+                </Border.Shadow>
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                        <GradientStop Color="{StaticResource PrimaryColor}" Offset="0" />
+                        <GradientStop Color="{StaticResource TertiaryColor}" Offset="1" />
+                    </LinearGradientBrush>
+                </Border.Background>
+            </Border>
+
+            <Slider x:Name="TimelineSlider"
+                    Minimum="0"
+                    Maximum="{x:Bind MaxZ, Mode=OneWay}"
+                    Value="{x:Bind CurrentZ, Mode=TwoWay}"
+                    ThumbToolTipValueConverter="{x:Null}"
+                    HorizontalAlignment="Stretch"
+                    Opacity="0.01" />
+        </Grid>
+
+        <Grid Grid.Row="2" Margin="0,4,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0"
+                       Text="{x:Bind EarliestDateText, Mode=OneWay}"
+                       Style="{StaticResource LabelSmall}"
+                       Foreground="{StaticResource WhiteBrush38}"
+                       FontSize="9"
+                       HorizontalAlignment="Left" />
+
+            <TextBlock Grid.Column="1"
+                       Text="{x:Bind LatestDateText, Mode=OneWay}"
+                       Style="{StaticResource LabelSmall}"
+                       Foreground="{StaticResource WhiteBrush38}"
+                       FontSize="9"
+                       HorizontalAlignment="Right" />
+        </Grid>
+    </Grid>
+</UserControl>

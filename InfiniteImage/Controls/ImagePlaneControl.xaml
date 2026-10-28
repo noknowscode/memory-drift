@@ -5,54 +5,48 @@
     xmlns:local="using:InfiniteImage.Controls"
     UseLayoutRounding="True">
 
-    <!-- Outer container with shadow -->
     <Grid x:Name="RootGrid"
           Translation="0,0,24">
         <Grid.Shadow>
             <ThemeShadow />
         </Grid.Shadow>
 
-        <!-- Main card -->
         <Grid CornerRadius="8"
-              Background="#1A1A22">
+              Background="{StaticResource SurfaceVariantBrush}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- Image with gradient overlay -->
             <Grid Grid.Row="0" CornerRadius="8,8,0,0">
                 <Image x:Name="PlaneImage"
                        Stretch="UniformToFill"
                        HorizontalAlignment="Center"
                        VerticalAlignment="Center" />
 
-                <!-- Subtle vignette on image -->
                 <Border CornerRadius="8,8,0,0">
                     <Border.Background>
                         <RadialGradientBrush Center="0.5,0.5" RadiusX="0.7" RadiusY="0.7">
-                            <GradientStop Color="#00000000" Offset="0.5" />
-                            <GradientStop Color="#30000000" Offset="1.0" />
+                            <GradientStop Color="{StaticResource BlackColor0}" Offset="0.5" />
+                            <GradientStop Color="{StaticResource BlackColor19}" Offset="1.0" />
                         </RadialGradientBrush>
                     </Border.Background>
                 </Border>
 
-                <!-- Bottom gradient for text readability -->
                 <Border CornerRadius="8,8,0,0"
                         VerticalAlignment="Bottom"
                         Height="40">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                            <GradientStop Color="#00000000" Offset="0" />
-                            <GradientStop Color="#60000000" Offset="1" />
+                            <GradientStop Color="{StaticResource BlackColor0}" Offset="0" />
+                            <GradientStop Color="{StaticResource BlackColor38}" Offset="1" />
                         </LinearGradientBrush>
                     </Border.Background>
                 </Border>
             </Grid>
 
-            <!-- Info bar with blur effect -->
             <Border Grid.Row="1"
-                    Background="#CC0A0A0F"
+                    Background="{StaticResource SurfaceBrush80}"
                     Padding="10,6"
                     CornerRadius="0,0,8,8">
                 <StackPanel Spacing="2">
@@ -64,18 +58,17 @@
                                MaxLines="1" />
                     <TextBlock x:Name="ArtistText"
                                Style="{StaticResource LabelSmall}"
-                               Foreground="#80FFFFFF"
+                               Foreground="{StaticResource WhiteBrush50}"
                                FontSize="10"
                                TextTrimming="CharacterEllipsis"
                                MaxLines="1" />
                 </StackPanel>
             </Border>
 
-            <!-- Subtle accent border -->
             <Border Grid.RowSpan="2"
                     CornerRadius="8"
                     BorderThickness="1"
-                    BorderBrush="#15FFFFFF"
+                    BorderBrush="{StaticResource WhiteBrush8}"
                     IsHitTestVisible="False" />
         </Grid>
     </Grid>

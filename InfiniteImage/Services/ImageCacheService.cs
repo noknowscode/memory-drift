@@ -5,9 +5,6 @@ using Microsoft.UI.Dispatching;
 
 namespace InfiniteImage.Services;
 
-/// <summary>
-/// Non-blocking image cache with efficient LRU eviction.
-/// </summary>
 public class ImageCacheService
 {
     private readonly ConcurrentDictionary<string, CachedImage> _cache = new();
@@ -18,55 +15,60 @@ public class ImageCacheService
     private long _totalMemoryBytes;
     private DispatcherQueue? _dispatcher;
 
+    private readonly ILogger<ImageCacheService>? _logger;
+
+    public ImageCacheService(ILogger<ImageCacheService>? logger = null)
+    {
+        _logger = logger;
+    }
+
     public long TotalMemoryBytes => _totalMemoryBytes;
     public int CachedImageCount => _cache.Count;
 
-    private class CachedImage
+    private sealed class CachedImage
     {
         public BitmapImage Image { get; set; } = null!;
         public long EstimatedBytes { get; set; }
     }
 
-    /// <summary>
-    /// Gets cached image or returns null and starts background load.
-    /// NEVER blocks the UI thread.
-    /// </summary>
     public BitmapImage? GetOrCreateImage(string url, int decodePixelWidth, int decodePixelHeight, bool skipLoadIfNew = false)
     {
-        // Capture dispatcher on first call
         _dispatcher ??= DispatcherQueue.GetForCurrentThread();
 
-        // Return cached image immediately
         if (_cache.TryGetValue(url, out var cached))
         {
             TouchLru(url);
             return cached.Image;
         }
 
-        // Check if already loading
         lock (_loadingUrls)
         {
-            if (_loadingUrls.Contains(url))
+            if (!_loadingUrls.Add(url))
             {
-                return null; // Loading in progress
+                return null;
             }
-            _loadingUrls.Add(url);
         }
 
-        // Start deferred load on UI thread with low priority
-        _ = _dispatcher.TryEnqueue(DispatcherQueuePriority.Low, () =>
+        _ = _dispatcher.TryEnqueue(DispatcherQueuePriority.Low, async () =>
         {
             try
             {
                 var estimatedBytes = (long)decodePixelWidth * decodePixelHeight * CanvasConfig.EstimatedBytesPerPixel;
 
-                // Create image (will load asynchronously via UriSource)
                 var image = new BitmapImage
                 {
                     DecodePixelWidth = decodePixelWidth,
-                    DecodePixelHeight = decodePixelHeight,
-                    UriSource = new Uri(url)
+                    DecodePixelHeight = decodePixelHeight
                 };
+
+                if (IsLocalFilePath(url))
+                {
+                    await LoadLocalFileAsync(image, url);
+                }
+                else
+                {
+                    image.UriSource = new Uri(url);
+                }
 
                 var newCached = new CachedImage
                 {
@@ -83,11 +85,11 @@ public class ImageCacheService
                     _loadingUrls.Remove(url);
                 }
 
-                // Evict if over budget
                 EvictIfOverBudget();
             }
-            catch
+            catch (Exception ex)
             {
+                _logger?.LogWarning(ex, "Image load failed for {Url}", url);
                 lock (_loadingUrls)
                 {
                     _loadingUrls.Remove(url);
@@ -95,12 +97,9 @@ public class ImageCacheService
             }
         });
 
-        return null; // Return null immediately, image will appear when loaded
+        return null;
     }
 
-    /// <summary>
-    /// Efficient LRU-based eviction using O(1) operations.
-    /// </summary>
     private void EvictIfOverBudget()
     {
         while (_totalMemoryBytes > CanvasConfig.MaxImageCacheMemoryBytes && _cache.Count > 0)
@@ -109,22 +108,16 @@ public class ImageCacheService
 
             lock (_lruLock)
             {
-                if (_lruList.First != null)
+                if (_lruList.First is { } first)
                 {
-                    keyToRemove = _lruList.First.Value;
+                    keyToRemove = first.Value;
                     _lruList.RemoveFirst();
                     _lruNodes.Remove(keyToRemove);
                 }
             }
 
-            if (keyToRemove != null)
-            {
-                RemoveFromCache(keyToRemove);
-            }
-            else
-            {
-                break;
-            }
+            if (keyToRemove is null) break;
+            RemoveFromCache(keyToRemove);
         }
     }
 
@@ -158,9 +151,6 @@ public class ImageCacheService
         }
     }
 
-    /// <summary>
-    /// Handles memory pressure by clearing old cache entries using efficient LRU.
-    /// </summary>
     public void OnMemoryPressure()
     {
         var halfCount = _cache.Count / 2;
@@ -169,7 +159,7 @@ public class ImageCacheService
         lock (_lruLock)
         {
             var node = _lruList.First;
-            while (node != null && keysToRemove.Count < halfCount)
+            while (node is not null && keysToRemove.Count < halfCount)
             {
                 keysToRemove.Add(node.Value);
                 var next = node.Next;
@@ -194,5 +184,23 @@ public class ImageCacheService
             _lruNodes.Clear();
         }
         _totalMemoryBytes = 0;
+    }
+
+    private static bool IsLocalFilePath(string url) =>
+        url.StartsWith("file:///") || Path.IsPathRooted(url);
+
+    private async Task LoadLocalFileAsync(BitmapImage image, string filePath)
+    {
+        try
+        {
+            var path = filePath.Replace("file:///", "");
+            var file = await Windows.Storage.StorageFile.GetFileFromPathAsync(path);
+            using var stream = await file.OpenReadAsync();
+            await image.SetSourceAsync(stream);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Local file load failed: {Path}", filePath);
+        }
     }
 }
