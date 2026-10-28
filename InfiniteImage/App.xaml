@@ -6,22 +6,78 @@
   <Application.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
-        <!-- Load WinUI resources -->
         <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
         <utum:MaterialToolkitTheme
-          ColorOverrideSource="ms-appx:///Styles/ColorPaletteOverride.xaml">
-          <!-- NOTE: You can override the default Roboto font by providing your font assets here. -->
-          <!-- <utum:MaterialToolkitTheme.FontOverrideDictionary>
-            <ResourceDictionary>
-              <FontFamily x:Key="MaterialLightFontFamily">ms-appx:///Uno.Fonts.Roboto/Fonts/Roboto-Light.ttf#Roboto</FontFamily>
-              <FontFamily x:Key="MaterialMediumFontFamily">ms-appx:///Uno.Fonts.Roboto/Fonts/Roboto-Medium.ttf#Roboto</FontFamily>
-              <FontFamily x:Key="MaterialRegularFontFamily">ms-appx:///Uno.Fonts.Roboto/Fonts/Roboto-Regular.ttf#Roboto</FontFamily>
-            </ResourceDictionary>
-          </utum:MaterialToolkitTheme.FontOverrideDictionary> -->
-        </utum:MaterialToolkitTheme>
+          ColorOverrideSource="ms-appx:///Styles/ColorPaletteOverride.xaml" />
       </ResourceDictionary.MergedDictionaries>
 
-      <!-- Add resources here -->
+      <Color x:Key="WhiteColor100">#FFFFFF</Color>
+      <Color x:Key="WhiteColor63">#A0FFFFFF</Color>
+      <Color x:Key="WhiteColor50">#80FFFFFF</Color>
+      <Color x:Key="WhiteColor38">#60FFFFFF</Color>
+      <Color x:Key="WhiteColor25">#40FFFFFF</Color>
+      <Color x:Key="WhiteColor12">#20FFFFFF</Color>
+      <Color x:Key="WhiteColor8">#15FFFFFF</Color>
+      <Color x:Key="WhiteColor6">#0FFFFFFF</Color>
+
+      <Color x:Key="BlackColor0">#00000000</Color>
+      <Color x:Key="BlackColor19">#30000000</Color>
+      <Color x:Key="BlackColor38">#60000000</Color>
+      <Color x:Key="BlackColor50">#80000000</Color>
+      <Color x:Key="BlackColor60">#99000000</Color>
+      <Color x:Key="BlackColor69">#B0000000</Color>
+      <Color x:Key="BlackColor80">#CC000000</Color>
+
+      <Color x:Key="SurfaceDarkColor">#0A0A12</Color>
+      <Color x:Key="SurfaceDeepColor">#1A1A2E</Color>
+      <Color x:Key="SurfaceColor80">#CC0A0A0F</Color>
+
+      <Color x:Key="PrimaryColor19">#307C5CFF</Color>
+
+      <SolidColorBrush x:Key="WhiteBrush100" Color="{StaticResource WhiteColor100}" />
+      <SolidColorBrush x:Key="WhiteBrush63" Color="{StaticResource WhiteColor63}" />
+      <SolidColorBrush x:Key="WhiteBrush50" Color="{StaticResource WhiteColor50}" />
+      <SolidColorBrush x:Key="WhiteBrush38" Color="{StaticResource WhiteColor38}" />
+      <SolidColorBrush x:Key="WhiteBrush25" Color="{StaticResource WhiteColor25}" />
+      <SolidColorBrush x:Key="WhiteBrush12" Color="{StaticResource WhiteColor12}" />
+      <SolidColorBrush x:Key="WhiteBrush8" Color="{StaticResource WhiteColor8}" />
+      <SolidColorBrush x:Key="WhiteBrush6" Color="{StaticResource WhiteColor6}" />
+
+      <SolidColorBrush x:Key="BlackBrush0" Color="{StaticResource BlackColor0}" />
+      <SolidColorBrush x:Key="BlackBrush19" Color="{StaticResource BlackColor19}" />
+      <SolidColorBrush x:Key="BlackBrush38" Color="{StaticResource BlackColor38}" />
+      <SolidColorBrush x:Key="BlackBrush50" Color="{StaticResource BlackColor50}" />
+      <SolidColorBrush x:Key="BlackBrush60" Color="{StaticResource BlackColor60}" />
+      <SolidColorBrush x:Key="BlackBrush69" Color="{StaticResource BlackColor69}" />
+      <SolidColorBrush x:Key="BlackBrush80" Color="{StaticResource BlackColor80}" />
+
+      <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}" />
+      <SolidColorBrush x:Key="PrimaryBrush19" Color="{StaticResource PrimaryColor19}" />
+
+      <SolidColorBrush x:Key="TertiaryBrush" Color="{StaticResource TertiaryColor}" />
+
+      <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}" />
+      <SolidColorBrush x:Key="SurfaceBrush80" Color="{StaticResource SurfaceColor80}" />
+      <SolidColorBrush x:Key="SurfaceVariantBrush" Color="{StaticResource SurfaceVariantColor}" />
+      <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}" />
+
+      <SolidColorBrush x:Key="SurfaceDarkBrush" Color="{StaticResource SurfaceDarkColor}" />
+      <SolidColorBrush x:Key="SurfaceDeepBrush" Color="{StaticResource SurfaceDeepColor}" />
+
+      <LinearGradientBrush x:Key="PrimaryToTertiaryGradient" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="{StaticResource PrimaryColor}" Offset="0" />
+        <GradientStop Color="{StaticResource TertiaryColor}" Offset="1" />
+      </LinearGradientBrush>
+
+      <RadialGradientBrush x:Key="VignetteGradient" Center="0.5,0.5" RadiusX="0.8" RadiusY="0.8">
+        <GradientStop Color="Transparent" Offset="0" />
+        <GradientStop Color="{StaticResource BlackColor50}" Offset="1" />
+      </RadialGradientBrush>
+
+      <RadialGradientBrush x:Key="MotionGlowGradient" Center="0.5,1.0" RadiusX="2.0" RadiusY="1.5">
+        <GradientStop Color="{StaticResource PrimaryColor19}" Offset="0" />
+        <GradientStop Color="{StaticResource BlackColor0}" Offset="1" />
+      </RadialGradientBrush>
 
     </ResourceDictionary>
   </Application.Resources>

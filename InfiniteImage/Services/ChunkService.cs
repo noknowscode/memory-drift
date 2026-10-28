@@ -2,15 +2,14 @@ using InfiniteImage.Models;
 
 namespace InfiniteImage.Services;
 
-/// <summary>
-/// Manages chunk generation and caching with efficient LRU.
-/// </summary>
 public class ChunkService
 {
     private readonly Dictionary<string, Chunk> _cache = new();
     private readonly LinkedList<string> _lruOrder = new();
     private readonly Dictionary<string, LinkedListNode<string>> _lruNodes = new();
     private readonly object _lock = new();
+    private readonly PhotoLibraryService _libraryService;
+    private readonly List<Chunk> _activeChunksBuffer = new(CanvasConfig.TotalActiveChunks);
 
     private static readonly string[] ArtistNames =
     [
@@ -31,9 +30,11 @@ public class ChunkService
         "Passages", "Fragments", "Memories", "Journeys", "Whispers"
     ];
 
-    /// <summary>
-    /// Gets or generates a chunk at the specified coordinates with O(1) LRU.
-    /// </summary>
+    public ChunkService(PhotoLibraryService libraryService)
+    {
+        _libraryService = libraryService;
+    }
+
     public Chunk GetChunk(int cx, int cy, int cz)
     {
         var key = $"{cx},{cy},{cz}";
@@ -42,7 +43,6 @@ public class ChunkService
         {
             if (_cache.TryGetValue(key, out var chunk))
             {
-                // Move to end of LRU using O(1) node lookup
                 if (_lruNodes.TryGetValue(key, out var node))
                 {
                     _lruOrder.Remove(node);
@@ -52,13 +52,11 @@ public class ChunkService
                 return chunk;
             }
 
-            // Generate new chunk
             chunk = GenerateChunk(cx, cy, cz);
             _cache[key] = chunk;
             var addedNode = _lruOrder.AddLast(key);
             _lruNodes[key] = addedNode;
 
-            // Evict oldest if over limit
             while (_cache.Count > CanvasConfig.MaxCacheSize && _lruOrder.First != null)
             {
                 var oldest = _lruOrder.First.Value;
@@ -71,12 +69,9 @@ public class ChunkService
         }
     }
 
-    /// <summary>
-    /// Gets all active chunks around a camera position.
-    /// </summary>
     public List<Chunk> GetActiveChunks(int cameraCX, int cameraCY, int cameraCZ)
     {
-        var chunks = new List<Chunk>();
+        _activeChunksBuffer.Clear();
 
         for (int dx = -CanvasConfig.RenderRadiusXY; dx <= CanvasConfig.RenderRadiusXY; dx++)
         {
@@ -84,15 +79,20 @@ public class ChunkService
             {
                 for (int dz = -CanvasConfig.RenderRadiusZ; dz <= CanvasConfig.RenderRadiusZ; dz++)
                 {
-                    chunks.Add(GetChunk(cameraCX + dx, cameraCY + dy, cameraCZ + dz));
+                    _activeChunksBuffer.Add(GetChunk(cameraCX + dx, cameraCY + dy, cameraCZ + dz));
                 }
             }
         }
 
-        return chunks;
+        return _activeChunksBuffer;
     }
 
-    private Chunk GenerateChunk(int cx, int cy, int cz)
+    private Chunk GenerateChunk(int cx, int cy, int cz) =>
+        _libraryService.CurrentMode == LibraryMode.Personal
+            ? GenerateChunkFromLibrary(cx, cy, cz)
+            : GenerateChunkRandom(cx, cy, cz);
+
+    private Chunk GenerateChunkRandom(int cx, int cy, int cz)
     {
         var seed = HashService.HashString($"chunk3d_{cx}_{cy}_{cz}");
         var planes = new List<ImagePlane>();
@@ -109,6 +109,9 @@ public class ChunkService
             var plane = new ImagePlane
             {
                 Id = $"{cx}_{cy}_{cz}_{i}",
+                ChunkX = cx,
+                ChunkY = cy,
+                ChunkZ = cz,
                 LocalX = (float)(HashService.RandomAt(s, 0) * CanvasConfig.ChunkSize - CanvasConfig.ChunkSize / 2.0),
                 LocalY = (float)(HashService.RandomAt(s, 1) * CanvasConfig.ChunkSize - CanvasConfig.ChunkSize / 2.0),
                 LocalZ = (float)(HashService.RandomAt(s, 2) * CanvasConfig.ChunkSize),
@@ -123,9 +126,69 @@ public class ChunkService
                 Year = 2020 + (int)(HashService.RandomAt(s, 11) * 6)
             };
 
-            // Pre-compute trigonometric values
             plane.CacheTrigValues();
+            planes.Add(plane);
+        }
 
+        return new Chunk(cx, cy, cz, planes);
+    }
+
+    private Chunk GenerateChunkFromLibrary(int cx, int cy, int cz)
+    {
+        var planes = new List<ImagePlane>();
+
+        float chunkZMin = cz * CanvasConfig.ChunkSize;
+        float chunkZMax = (cz + 1) * CanvasConfig.ChunkSize;
+
+        var photosInRange = _libraryService.GetPhotosInZRange(chunkZMin, chunkZMax);
+
+        if (photosInRange.Count > CanvasConfig.MaxPhotosPerChunk)
+        {
+            var step = photosInRange.Count / (float)CanvasConfig.MaxPhotosPerChunk;
+            var sampledPhotos = new List<Photo>(CanvasConfig.MaxPhotosPerChunk);
+            for (int i = 0; i < CanvasConfig.MaxPhotosPerChunk; i++)
+            {
+                var index = (int)(i * step);
+                if (index < photosInRange.Count)
+                {
+                    sampledPhotos.Add(photosInRange[index]);
+                }
+            }
+            photosInRange = sampledPhotos;
+        }
+
+        foreach (var photo in photosInRange)
+        {
+            var seed = HashService.HashString($"photo_{photo.Id}_{cx}_{cy}");
+
+            var width = Math.Min(photo.Width, photo.Height) > 0
+                ? (float)(CanvasConfig.PlaneMinSize +
+                    HashService.RandomAt(seed, 3) * (CanvasConfig.PlaneMaxSize - CanvasConfig.PlaneMinSize))
+                : 200f;
+
+            var aspectRatio = photo.Width > 0 && photo.Height > 0
+                ? (float)photo.Height / photo.Width
+                : 1.0f;
+
+            var plane = new ImagePlane
+            {
+                Id = $"plane_{cx}_{cy}_{cz}_{photo.Id}",
+                ChunkX = cx,
+                ChunkY = cy,
+                ChunkZ = cz,
+                LocalX = (float)(HashService.RandomAt(seed, 0) * CanvasConfig.ChunkSize - CanvasConfig.ChunkSize / 2.0),
+                LocalY = (float)(HashService.RandomAt(seed, 1) * CanvasConfig.ChunkSize - CanvasConfig.ChunkSize / 2.0),
+                LocalZ = photo.ZCoordinate - chunkZMin,
+                Width = width,
+                Height = width * aspectRatio,
+                RotationY = (float)((HashService.RandomAt(seed, 5) - 0.5) * 20),
+                RotationX = (float)((HashService.RandomAt(seed, 6) - 0.5) * 10),
+                PhotoId = photo.Id,
+                Title = photo.Title,
+                Year = photo.DateTaken.Year
+            };
+
+            plane.CacheTrigValues();
             planes.Add(plane);
         }
 
@@ -140,4 +203,14 @@ public class ChunkService
     }
 
     public int CachedChunkCount => _cache.Count;
+
+    public void ClearCache()
+    {
+        lock (_lock)
+        {
+            _cache.Clear();
+            _lruOrder.Clear();
+            _lruNodes.Clear();
+        }
+    }
 }
