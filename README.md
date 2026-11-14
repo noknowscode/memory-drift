@@ -1,3 +1,5 @@
+> **Moved to uno-lab.** This project now lives in the `memory-drift/` folder of [noknowscode/uno-lab](https://github.com/noknowscode/uno-lab/tree/main/memory-drift) (private). This repository is archived and kept for its history.
+
 # Memory Drift
 
 An infinite 3D photo canvas: fly through an endless space of images from a photo library, with a landing page and a timeline scrubber.
